@@ -25,7 +25,7 @@ import logo from '@/assets/images/pepewifgold.jpg'
         <v-card-text>
           <v-btn
           size="300"
-          rounded
+          rounded="xl"
           flat
           >
           <v-avatar

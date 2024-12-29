@@ -6,7 +6,6 @@ import logo from '@/assets/images/pepewifgold.jpg'
   <v-container
   class="d-flex justify-center align-center"
   >
-
   <v-banner
     sticky
     lines="one"

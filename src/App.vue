@@ -1,8 +1,6 @@
 <script setup lang="ts">
 import BottomBar from './components/BottomBar.vue';
 import TopBar from './components/TopBar.vue';
-import HomeView from './views/HomeView.vue';
-
 </script>
 
 <template>
@@ -11,7 +9,7 @@ import HomeView from './views/HomeView.vue';
   <v-container fluid
   >
   <TopBar/>
-  <HomeView/>
+  <RouterView/>
   <BottomBar/>
 </v-container>
 </v-layout>
