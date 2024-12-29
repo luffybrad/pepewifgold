@@ -11,7 +11,7 @@ import logo from '@/assets/images/pepewifgold.jpg'
     lines="one"
     class="bg-green"
     :avatar="logo"
-    rounded
+    rounded="xl"
     >
   <v-banner-text>
     Luffy

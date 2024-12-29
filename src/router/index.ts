@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import HomeView from '../views/HomeView.vue'
 import ShareView from '@/views/ShareView.vue'
+import TasksView from '@/views/TasksView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -14,6 +15,11 @@ const router = createRouter({
       path: '/share',
       name: 'share',
       component: ShareView
+    },
+    {
+      path: '/tasks',
+      name: 'tasks',
+      component: TasksView
     }
   ],
 })

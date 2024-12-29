@@ -119,7 +119,7 @@ import { ref } from 'vue';
       </v-btn>
       <v-snackbar
       v-model="snackbar"
-      timeout="500"
+      timeout="1000"
     >
       Link copied
 
