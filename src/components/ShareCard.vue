@@ -12,8 +12,7 @@ import { ref } from 'vue';
     ]
   )
 
-
-  const show = ref(false)
+  const snackbar = ref(false)
   </script>
 
   <template>
@@ -107,30 +106,34 @@ import { ref } from 'vue';
     </v-col>
     <v-col>
 
-        <v-tooltip
-        v-model="show"
-          location="top"
-        >
-        <template v-slot:activator="{ props }">
+
           <v-btn
       append-icon="mdi-content-copy"
       rounded="xl"
       color="green"
       variant="outlined"
       elevation="5"
-      @click="show =!show"
-      v-bind="props"
+      @click = "snackbar = true"
       >
         Copy Link
       </v-btn>
+      <v-snackbar
+      v-model="snackbar"
+      timeout="500"
+    >
+      Link copied
+
+      <template v-slot:actions>
+        <v-btn
+          color="blue"
+          variant="text"
+          @click="snackbar = false"
+          icon="mdi-close"
+          size="small"
+        >
+        </v-btn>
       </template>
-          <span
-          v-if="!show"
-          >Click to copy</span>
-          <span
-          v-if="show"
-          >Link copied</span>
-        </v-tooltip>
+    </v-snackbar>
     </v-col>
 
     <v-col>
