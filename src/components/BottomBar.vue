@@ -12,15 +12,12 @@ const value = ref(0)
   >
     <v-bottom-navigation
       v-model="value"
+      class="bg-green"
       color="green-accent-3"
       active
       rounded="xl"
     >
-    <v-sheet
-    class="d-flex justify-center align-center bg-green"
-    rounded="xl"
-    width="50%"
-    >
+
 
       <v-btn
       to="/"
@@ -53,10 +50,6 @@ const value = ref(0)
 
         Balance
       </v-btn>
-
-
-
-    </v-sheet>
 
 
     </v-bottom-navigation>
