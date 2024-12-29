@@ -6,7 +6,6 @@ import ShareCard from '@/components/ShareCard.vue';
 <template>
 
 <v-layout
-class="d-flex fill-height"
 >
   <ShareCard/>
 </v-layout>

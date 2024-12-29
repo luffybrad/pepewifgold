@@ -12,6 +12,8 @@ import { ref } from 'vue';
     ]
   )
 
+
+  const show = ref(false)
   </script>
 
   <template>
@@ -34,7 +36,7 @@ import { ref } from 'vue';
     </v-divider>
     <v-card
       variant="tonal"
-      class="mx-auto ma-2 bg-green"
+      class="mx-auto my-5 bg-green"
       :prepend-avatar="logo"
     >
       <template v-slot:title>
@@ -82,16 +84,53 @@ import { ref } from 'vue';
     </v-card>
 
     <v-row
-    class="d-flex text-center justify-space-evenly align-center">
+
+    class="d-flex text-center justify-space-evenly align-center my-5">
+
+    <v-col
+    cols="12"
+    >
+    <span
+    class="text-body-2 text-green"
+    >
+      Referral link
+    </span>
+
+    <v-text-field
+        density="compact"
+        variant="outlined"
+        readonly
+        class="text-green"
+      >
+      https://youtube.com/@html-hero?si=iCMCmyo6Twil2okd
+    </v-text-field>
+    </v-col>
     <v-col>
-      <v-btn
+
+        <v-tooltip
+        v-model="show"
+          location="top"
+        >
+        <template v-slot:activator="{ props }">
+          <v-btn
+      append-icon="mdi-content-copy"
       rounded="xl"
       color="green"
       variant="outlined"
       elevation="5"
+      @click="show =!show"
+      v-bind="props"
       >
         Copy Link
       </v-btn>
+      </template>
+          <span
+          v-if="!show"
+          >Click to copy</span>
+          <span
+          v-if="show"
+          >Link copied</span>
+        </v-tooltip>
     </v-col>
 
     <v-col>
