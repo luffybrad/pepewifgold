@@ -1,109 +1,88 @@
-<script setup lang="ts">
-</script>
-
 <template>
   <v-container>
-
-    <span
-      class="d-flex justify-center text-green text-h4"
-
-      >
-      Invite Friends
+    <span class="d-flex justify-center text-green text-h4">
+      Earn More Coins
     </span>
-    <v-divider
-    class="my-5"
-    thickness="1"
-    color="success"
-    opacity="10"
-    >
-
+    <v-divider class="my-5" thickness="1" color="success" opacity="10">
     </v-divider>
 
-    <v-list
-    >
+    <v-list>
       <v-list-item
-      prepend-icon="mdi-youtube"
-      class="text-red red my-5"
-      variant="tonal"
-      rounded="xl"
-      append-icon="mdi-chevron-right"
+        v-for="task in tasks"
+        :key="task.link"
+        :prepend-icon="task.icon"
+        :class="task.class"
+        variant="tonal"
+        rounded="xl"
+        append-icon="mdi-chevron-right"
+        :href="task.link"
+        target="_blank"
+        @click.prevent="handleSubscribe(task.link, task.type)"
       >
-      <v-list-item-title>
-        Subscribe
-      </v-list-item-title>
-      <v-list-item-subtitle>
-        2500
-      </v-list-item-subtitle>
-
+        <v-list-item-title>
+          {{ task.title }}
+        </v-list-item-title>
+        <v-list-item-subtitle>
+          2500
+        </v-list-item-subtitle>
       </v-list-item>
-
-      <v-list-item
-      prepend-icon="mdi-twitter"
-      class="text-black black my-5"
-      variant="tonal"
-      rounded="xl"
-      append-icon="mdi-chevron-right"
-      >
-      <v-list-item-title>
-        Follow Us
-      </v-list-item-title>
-      <v-list-item-subtitle>
-        2500
-      </v-list-item-subtitle>
-
-      </v-list-item>
-
-      <v-list-item
-      prepend-icon="mdi-facebook"
-      class="text-blue-darken-4 blue-darken-4 my-5"
-      variant="tonal"
-      rounded="xl"
-      append-icon="mdi-chevron-right"
-      >
-      <v-list-item-title>
-        Follow Us
-      </v-list-item-title>
-      <v-list-item-subtitle>
-        2500
-      </v-list-item-subtitle>
-
-      </v-list-item>
-
-      <v-list-item
-      prepend-icon="mdi-instagram"
-      class="text-pink-accent-3 pink-accent-3 my-5"
-      variant="tonal"
-      rounded="xl"
-      append-icon="mdi-chevron-right"
-      >
-      <v-list-item-title>
-        Follow Us
-      </v-list-item-title>
-      <v-list-item-subtitle>
-        2500
-      </v-list-item-subtitle>
-
-      </v-list-item>
-
-      <v-list-item
-      prepend-icon="mdi-send"
-      class="text-light-blue light-blue my-5"
-      variant="tonal"
-      rounded="xl"
-      append-icon="mdi-chevron-right"
-      >
-      <v-list-item-title>
-        Follow Us
-      </v-list-item-title>
-      <v-list-item-subtitle>
-        2500
-      </v-list-item-subtitle>
-
-      </v-list-item>
-
     </v-list>
-
   </v-container>
 </template>
+
+<script setup lang="ts">
+import { ref } from 'vue'
+import { useUserStore } from '@/stores/user'
+
+const userStore = useUserStore()
+
+const tasks = ref([
+  {
+    icon: 'mdi-youtube',
+    class: 'text-red red my-5',
+    link: 'https://www.youtube.com/@PepeWifGold?sub_confirmation=1',
+    title: 'Subscribe',
+    type: 'youtube_subscribe'
+  },
+  {
+    icon: 'mdi-twitter',
+    class: 'text-black black my-5',
+    link: 'https://twitter.com/PepeWifGold',
+    title: 'Follow Us',
+    type: 'twitter_follow'
+  },
+  {
+    icon: 'mdi-facebook',
+    class: 'text-blue-darken-4 blue-darken-4 my-5',
+    link: 'https://www.facebook.com/PepeWifGold',
+    title: 'Follow Us',
+    type: 'facebook_follow'
+  },
+  {
+    icon: 'mdi-instagram',
+    class: 'text-pink-accent-3 pink-accent-3 my-5',
+    link: 'https://www.instagram.com/PepeWifGold',
+    title: 'Follow Us',
+    type: 'instagram_follow'
+  },
+  {
+    icon: 'mdi-send',
+    class: 'text-light-blue light-blue my-5',
+    link: 'https://t.me/PepeWifGold',
+    title: 'Follow Us',
+    type: 'telegram_follow'
+  }
+])
+
+async function handleSubscribe(link: string, type: string) {
+  try {
+    await userStore.addCoins(2500, type)
+    window.open(link, '_blank')
+  } catch (error) {
+    console.error('Failed to add coins:', error)
+  }
+}
+</script>
+
 <style scoped>
 </style>

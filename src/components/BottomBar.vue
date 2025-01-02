@@ -1,15 +1,20 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
+import { useUserStore } from '@/stores/user';
+import { useProgressStore } from '@/stores/progress';
 
+const userStore = useUserStore();
+const progressStore = useProgressStore();
+const value = ref(0);
 
-
-const value = ref(0)
-
+// Compute remaining coins out of 500
+const remainingCoins = computed(() => {
+  return `${Math.ceil(progressStore.progress)}/500`;
+});
 </script>
+
 <template>
-  <v-container
-  class="d-flex justify-center align-center"
-  >
+  <v-container class="d-flex justify-center align-center">
     <v-bottom-navigation
       v-model="value"
       class="bg-green"
@@ -17,14 +22,9 @@ const value = ref(0)
       active
       rounded="xl"
     >
-
-
-      <v-btn
-      to="/"
-      >
-        <v-icon>mdi-cash</v-icon>
-
-        500/500
+      <v-btn to="/">
+        <v-icon>mdi-play</v-icon>
+        Play
       </v-btn>
 
       <v-btn

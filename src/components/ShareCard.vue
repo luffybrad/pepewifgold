@@ -1,7 +1,12 @@
   <script setup lang="ts">
+  import { ref, onMounted } from 'vue'
+  import { useUserStore } from '@/stores/user'
   import logo from '@/assets/images/pepewifgold.jpg'
-import { ref } from 'vue';
 
+  const userStore = useUserStore()
+  const snackbar = ref(false)
+  const snackbarMessage = ref('Link copied!')
+  const referralLink = ref('')
 
   const steps = ref(
     [
@@ -12,7 +17,51 @@ import { ref } from 'vue';
     ]
   )
 
-  const snackbar = ref(false)
+  // Fetch user's unique referral link
+  onMounted(async () => {
+    try {
+      const response = await fetch('http://localhost:5000/referral-link', {
+        headers: {
+          'Authorization': `Bearer ${userStore.token}`
+        }
+      })
+      const data = await response.json()
+      referralLink.value = data.referralLink
+    } catch (err) {
+      console.error('Failed to fetch referral link:', err)
+    }
+  })
+
+  // Copy link function
+  async function copyLink() {
+    try {
+      await navigator.clipboard.writeText(referralLink.value)
+      snackbarMessage.value = 'Link copied!'
+      snackbar.value = true
+    } catch (err) {
+      console.error('Failed to copy:', err)
+    }
+  }
+
+  // Share function
+  async function shareLink() {
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: 'Join me on PepeWifGold!',
+          text: 'Use my referral link to sign up and earn coins!',
+          url: referralLink.value
+        });
+      } else {
+        // Fallback for browsers that don't support Web Share API
+        await copyLink();
+        snackbarMessage.value = 'Link copied! You can now paste it anywhere to share.';
+        snackbar.value = true;
+      }
+    } catch (err) {
+      console.error('Failed to share:', err);
+    }
+  }
   </script>
 
   <template>
@@ -101,7 +150,7 @@ import { ref } from 'vue';
         readonly
         class="text-green"
       >
-      https://youtube.com/@html-hero?si=iCMCmyo6Twil2okd
+    {{ referralLink }}
     </v-text-field>
     </v-col>
     <v-col>
@@ -113,15 +162,15 @@ import { ref } from 'vue';
       color="green"
       variant="outlined"
       elevation="5"
-      @click = "snackbar = true"
+      @click="copyLink"
       >
         Copy Link
       </v-btn>
       <v-snackbar
       v-model="snackbar"
-      timeout="1000"
+      timeout="2000"
     >
-      Link copied
+      {{ snackbarMessage }}
 
       <template v-slot:actions>
         <v-btn
@@ -143,6 +192,7 @@ import { ref } from 'vue';
       color="green"
       variant="outlined"
       elevation="5"
+      @click="shareLink"
       >
         Share
       </v-btn>
@@ -152,6 +202,6 @@ import { ref } from 'vue';
 
     </v-container>
   </template>
-
   <style scoped>
   </style>
+
