@@ -40,35 +40,35 @@ const tasks = ref([
   {
     icon: 'mdi-youtube',
     class: 'text-red red my-5',
-    link: 'https://www.youtube.com/@PepeWifGold?sub_confirmation=1',
+    link: 'https://www.youtube.com/@LuffysDrip?sub_confirmation=1',
     title: 'Subscribe',
     type: 'youtube_subscribe'
   },
   {
     icon: 'mdi-twitter',
     class: 'text-black black my-5',
-    link: 'https://twitter.com/PepeWifGold',
+    link: 'https://twitter.com/LuffysDrip',
     title: 'Follow Us',
     type: 'twitter_follow'
   },
   {
     icon: 'mdi-facebook',
     class: 'text-blue-darken-4 blue-darken-4 my-5',
-    link: 'https://www.facebook.com/PepeWifGold',
+    link: 'https://www.facebook.com/LuffysDrip',
     title: 'Follow Us',
     type: 'facebook_follow'
   },
   {
     icon: 'mdi-instagram',
     class: 'text-pink-accent-3 pink-accent-3 my-5',
-    link: 'https://www.instagram.com/PepeWifGold',
+    link: 'https://www.instagram.com/LuffysDrip',
     title: 'Follow Us',
     type: 'instagram_follow'
   },
   {
     icon: 'mdi-send',
     class: 'text-light-blue light-blue my-5',
-    link: 'https://t.me/PepeWifGold',
+    link: 'https://t.me/LuffysDrip',
     title: 'Follow Us',
     type: 'telegram_follow'
   }
