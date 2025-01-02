@@ -16,7 +16,9 @@ interface SignupData {
   email: string;
 }
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000'
+const API_URL = import.meta.env.PROD 
+  ? 'https://wren-wealthy-minnow.ngrok-free.app'
+  : 'http://localhost:5000'
 
 export const useUserStore = defineStore('user', () => {
   const user = ref<User | null>(null)
@@ -68,42 +70,24 @@ export const useUserStore = defineStore('user', () => {
       const response = await fetch(`${API_URL}/signin`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ username })
-      });
-
-      const data = await response.json();
+        body: JSON.stringify({ username }),
+      })
 
       if (!response.ok) {
-        switch (response.status) {
-          case 400:
-            throw new Error('Username is required');
-          case 404:
-            throw new Error('User not found. Please check your username or sign up.');
-          case 500:
-            throw new Error('Server error. Please try again later.');
-          default:
-            throw new Error(data.error || 'Login failed. Please try again.');
-        }
+        const error = await response.json()
+        throw new Error(error.error || 'Failed to login')
       }
 
-      user.value = {
-        id: data.userId,
-        username: data.username,
-        email: data.email,
-        coins: data.coins,
-        isLoggedIn: true
-      };
-      token.value = data.token;
-      isAuthenticated.value = true;
-      localStorage.setItem('token', data.token);
-
-      await router.push('/');
-      
-      return data;
+      const data = await response.json()
+      token.value = data.token
+      localStorage.setItem('token', data.token)
+      await initializeUserState()
+      return data
     } catch (error) {
-      throw error;
+      console.error('Login error:', error)
+      throw error
     }
   }
 
