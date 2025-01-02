@@ -16,6 +16,8 @@ interface SignupData {
   email: string;
 }
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000'
+
 export const useUserStore = defineStore('user', () => {
   const user = ref<User | null>(null)
   const token = ref<string | null>(localStorage.getItem('token'))
@@ -63,7 +65,7 @@ export const useUserStore = defineStore('user', () => {
   // Login user
   async function login(username: string) {
     try {
-      const response = await fetch('http://localhost:5000/signin', {
+      const response = await fetch(`${API_URL}/signin`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
