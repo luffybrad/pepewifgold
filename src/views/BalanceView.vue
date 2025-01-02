@@ -1,123 +1,117 @@
 <template>
   <v-container>
-    <span class="d-flex justify-center text-green text-h4">
-      Your Activity
-    </span>
-    <v-divider class="my-5" thickness="1" color="success" opacity="10" />
+    <v-row justify="center">
+      <v-col cols="12" sm="8" md="6">
+        <!-- Loading State -->
+        <v-progress-circular
+          v-if="loading"
+          indeterminate
+          color="primary"
+          class="ma-4"
+        ></v-progress-circular>
 
-    <!-- Referrals Section -->
-    <v-card class="mb-4">
-      <v-card-title class="bg-green text-white">
-        Successful Referrals
-      </v-card-title>
-      <v-card-text>
-        <v-list v-if="stats.referrals.length">
-          <v-list-item
-            v-for="referral in stats.referrals"
-            :key="referral.created_at"
-          >
-            <v-list-item-title>
-              {{ referral.referred_user }}
-            </v-list-item-title>
-            <v-list-item-subtitle>
-              Joined {{ new Date(referral.created_at).toLocaleDateString() }}
-            </v-list-item-subtitle>
-            <template v-slot:append>
-              <v-chip color="green" text="500">
-                +500 coins
-              </v-chip>
-            </template>
-          </v-list-item>
-        </v-list>
+        <!-- Error State -->
         <v-alert
-          v-else
-          type="info"
-          text="No referrals yet. Share your referral link to earn coins!"
-        />
-      </v-card-text>
-    </v-card>
+          v-if="error"
+          type="error"
+          class="mb-4"
+        >
+          {{ error }}
+        </v-alert>
 
-    <!-- Tasks Section -->
-    <v-card>
-      <v-card-title class="bg-green text-white">
-        Completed Tasks
-      </v-card-title>
-      <v-card-text>
-        <v-list v-if="stats.tasks.length">
-          <v-list-item
-            v-for="task in stats.tasks"
-            :key="task.completed_at"
-          >
-            <v-list-item-title>
-              {{ formatTaskType(task.task_type) }}
-            </v-list-item-title>
-            <v-list-item-subtitle>
-              Completed {{ new Date(task.completed_at).toLocaleDateString() }}
-            </v-list-item-subtitle>
-            <template v-slot:append>
-              <v-chip color="green" :text="task.coins_earned.toString()">
-                +{{ task.coins_earned }} coins
-              </v-chip>
-            </template>
-          </v-list-item>
-        </v-list>
-        <v-alert
-          v-else
-          type="info"
-          text="No tasks completed yet. Visit the Tasks page to earn coins!"
-        />
-      </v-card-text>
-    </v-card>
+        <!-- Balance Card -->
+        <v-card class="mb-4">
+          <v-card-title class="text-center">
+            Your Balance
+          </v-card-title>
+          <v-card-text class="text-center text-h4">
+            {{ userStore.user?.coins || 0 }} Coins
+          </v-card-text>
+        </v-card>
+
+        <!-- Transactions List -->
+        <v-card>
+          <v-card-title>
+            Transaction History
+          </v-card-title>
+          <v-card-text>
+            <v-list v-if="transactions.length > 0">
+              <v-list-item
+                v-for="(transaction, index) in transactions"
+                :key="index"
+                :title="transaction.type"
+                :subtitle="new Date(transaction.date).toLocaleDateString()"
+              >
+                <template v-slot:append>
+                  <span :class="transaction.amount >= 0 ? 'text-success' : 'text-error'">
+                    {{ transaction.amount >= 0 ? '+' : '' }}{{ transaction.amount }}
+                  </span>
+                </template>
+              </v-list-item>
+            </v-list>
+            <v-alert
+              v-else
+              type="info"
+              variant="tonal"
+              class="mt-2"
+            >
+              No transactions to display
+            </v-alert>
+          </v-card-text>
+        </v-card>
+      </v-col>
+    </v-row>
   </v-container>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useUserStore } from '@/stores/user'
+import { useRouter } from 'vue-router'
+
+interface Transaction {
+  type: string
+  amount: number
+  date: string
+}
 
 const userStore = useUserStore()
+const router = useRouter()
 
-interface Referral {
-  referred_user: string;
-  created_at: string;
-}
-
-interface Task {
-  task_type: string;
-  coins_earned: number;
-  completed_at: string;
-}
-
-interface Stats {
-  referrals: Referral[];
-  tasks: Task[];
-}
-
-const stats = ref<Stats>({
-  referrals: [],
-  tasks: []
-})
+const transactions = ref<Transaction[]>([])
+const loading = ref(true)
+const error = ref<string | null>(null)
 
 onMounted(async () => {
+  if (!userStore.isAuthenticated) {
+    router.push('/')
+    return
+  }
+
   try {
-    const response = await fetch('http://localhost:5000/user/stats', {
-      headers: {
-        'Authorization': `Bearer ${userStore.token}`
+    loading.value = true
+    // Initialize with empty array until API is ready
+    transactions.value = [
+      {
+        type: 'Initial Balance',
+        amount: userStore.user?.coins || 0,
+        date: new Date().toISOString()
       }
-    })
-    const data = await response.json()
-    stats.value = data
-  } catch (error) {
-    console.error('Failed to fetch stats:', error)
+    ]
+    loading.value = false
+  } catch (err) {
+    error.value = err instanceof Error ? err.message : 'An error occurred'
+    loading.value = false
   }
 })
-
-function formatTaskType(type: string) {
-  return type.split('_')
-    .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-    .join(' ')
-}
 </script>
 
 <style scoped>
+.text-success {
+  color: green !important;
+}
+
+.text-error {
+  color: red !important;
+}
 </style>
