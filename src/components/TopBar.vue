@@ -17,6 +17,7 @@ const error = ref('')
 const snackbar = ref(false)
 const snackbarText = ref('')
 const referralCode = ref(route.query.ref as string || '')
+const isTelegramWebApp = ref(window.Telegram?.WebApp != null)
 
 // Watch for route changes to handle referral links
 watch(
@@ -45,6 +46,11 @@ async function handleLogin() {
     await userStore.login(username.value)
     loginDialog.value = false
     resetForm()
+    
+    // Don't redirect if in Telegram WebApp
+    if (!isTelegramWebApp.value && route.path !== '/') {
+      await router.push('/')
+    }
   } catch (err: any) {
     error.value = err.message || 'Login failed. Please try again.'
   } finally {
@@ -134,8 +140,8 @@ function switchToLogin() {
 async function handleLogout() {
   try {
     await userStore.logout()
-    // Only redirect if we're not already on the home page
-    if (route.path !== '/') {
+    // Only redirect if not in Telegram WebApp and not on home page
+    if (!isTelegramWebApp.value && route.path !== '/') {
       await router.push('/')
     }
   } catch (err) {
