@@ -1,89 +1,53 @@
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, computed } from 'vue'
+import { API_URL } from '@/config/api'
 
 interface User {
-  id: number;
-  username: string;
-  email: string;
-  coins: number;
-  lastLogin?: Date;
-  isLoggedIn: boolean;
+  id: number
+  username: string
+  email: string
+  coins: number
+  isLoggedIn: boolean
 }
 
-interface SignupData {
-  username: string;
-  email: string;
+interface ApiResponse {
+  token?: string
+  error?: string
+  coins?: number
+  userId?: number
+  username?: string
+  email?: string
 }
-
-const API_URL = import.meta.env.PROD 
-  ? 'https://wren-wealthy-minnow.ngrok-free.app'
-  : 'http://localhost:5000'
 
 export const useUserStore = defineStore('user', () => {
   const user = ref<User | null>(null)
   const token = ref<string | null>(localStorage.getItem('token'))
-  const isAuthenticated = ref(false)
-  const router = useRouter()
+  const isAuthenticated = computed(() => !!token.value)
+  const lastClickTime = ref<number>(0)
 
-  async function initializeUserState() {
-    const storedToken = localStorage.getItem('token')
-    if (!storedToken) {
-      return
-    }
-
-    try {
-      // Fetch user data using the stored token
-      const response = await fetch('http://localhost:5000/user', {
-        headers: {
-          'Authorization': `Bearer ${storedToken}`
-        }
-      })
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch user data')
-      }
-
-      const userData = await response.json()
-      user.value = {
-        id: userData.userId,
-        username: userData.username,
-        email: userData.email,
-        coins: userData.coins,
-        isLoggedIn: true
-      }
-      token.value = storedToken
-      isAuthenticated.value = true
-    } catch (error) {
-      console.error('Error initializing user state:', error)
-      // Clear invalid token
-      localStorage.removeItem('token')
-      token.value = null
-      user.value = null
-      isAuthenticated.value = false
-    }
-  }
-
-  // Login user
-  async function login(username: string) {
+  async function login(username: string): Promise<ApiResponse> {
     try {
       const response = await fetch(`${API_URL}/signin`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include',
         body: JSON.stringify({ username }),
       })
 
+      const data: ApiResponse = await response.json()
+
       if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.error || 'Failed to login')
+        throw new Error(data.error || 'Failed to login')
       }
 
-      const data = await response.json()
-      token.value = data.token
-      localStorage.setItem('token', data.token)
-      await initializeUserState()
+      if (data.token) {
+        token.value = data.token
+        localStorage.setItem('token', data.token)
+        await initializeUserState()
+      }
+
       return data
     } catch (error) {
       console.error('Login error:', error)
@@ -91,148 +55,114 @@ export const useUserStore = defineStore('user', () => {
     }
   }
 
-  // Logout user
-  async function logout() {
+  async function initializeUserState(): Promise<void> {
     try {
-      if (token.value) {
-        await fetch('http://localhost:5000/signout', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${token.value}`
-          }
-        })
-      }
-    } catch (error) {
-      console.error('Logout error:', error)
-    } finally {
-      user.value = null
-      token.value = null
-      isAuthenticated.value = false
-      localStorage.removeItem('token')
-    }
-  }
+      if (!token.value) return
 
-  async function signup(username: string, email: string, referralCode?: string) {
-    try {
-      const response = await fetch('http://localhost:5000/signup', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          username,
-          email,
-          referralCode
-        })
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        switch (response.status) {
-          case 400:
-            if (data.error === 'Username already exists') {
-              throw new Error('This username is already taken. Please choose another one.');
-            }
-            throw new Error('Invalid input. Please check your details.');
-          case 401:
-            throw new Error('Authentication failed. Please try again.');
-          case 404:
-            throw new Error('Username not found. Please check and try again.');
-          case 500:
-            throw new Error('Server error. Please try again later.');
-          default:
-            throw new Error(data.error || 'Signup failed. Please try again.');
-        }
-      }
-
-      // Store user data and token
-      user.value = {
-        id: data.userId,
-        username: data.username,
-        email: data.email,
-        coins: data.coins,
-        isLoggedIn: true
-      };
-      token.value = data.token;
-      isAuthenticated.value = true;
-      localStorage.setItem('token', data.token);
-
-      // Redirect to home page after successful signup
-      await router.push('/')
-      
-      return data;
-    } catch (error) {
-      // Re-throw the error to be handled by the component
-      throw error;
-    }
-  }
-
-  // Add coin functionality
-  async function addCoin() {
-    try {
-      const response = await fetch('http://localhost:5000/add-coin', {
-        method: 'POST',
+      const response = await fetch(`${API_URL}/user`, {
         headers: {
           'Authorization': `Bearer ${token.value}`,
           'Content-Type': 'application/json'
-        }
-      });
+        },
+        credentials: 'include'
+      })
 
       if (!response.ok) {
-        throw new Error('Failed to add coin');
+        throw new Error('Failed to fetch user data')
       }
 
-      const data = await response.json();
-      if (user.value) {
-        user.value.coins = data.coins;
+      const userData: ApiResponse = await response.json()
+
+      if (userData.userId && userData.username && userData.email !== undefined) {
+        user.value = {
+          id: userData.userId,
+          username: userData.username,
+          email: userData.email,
+          coins: userData.coins || 0,
+          isLoggedIn: true
+        }
       }
     } catch (error) {
-      console.error('Error adding coin:', error);
-      throw error;
+      console.error('Error initializing user state:', error)
+      logout()
     }
   }
 
   async function addCoins(amount: number, taskType: string) {
-    if (!token.value) {
-      throw new Error('Not authenticated');
+    if (!token.value || !user.value) {
+      throw new Error('Not authenticated')
     }
 
     try {
-      const response = await fetch('http://localhost:5000/add-coins', {
+      const response = await fetch(`${API_URL}/add-coins`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token.value}`
         },
-        body: JSON.stringify({ amount, taskType })
-      });
+        credentials: 'include',
+        body: JSON.stringify({
+          amount: 1,
+          taskType: 'click_coin'
+        })
+      })
 
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to add coins');
+        const errorData = await response.json()
+        console.error('Server error:', errorData)
+        throw new Error(errorData.error || 'Failed to add coins')
       }
 
-      const data = await response.json();
-      if (user.value) {
-        user.value.coins = data.coins;
+      const data = await response.json()
+      
+      if (user.value && typeof data.coins === 'number') {
+        user.value.coins = data.coins
       }
-      return data;
+      return data
     } catch (error) {
-      console.error('Error adding coins:', error);
-      throw error;
+      console.error('Add coins error:', error)
+      throw error
     }
   }
 
-  return { 
-    user, 
-    token, 
-    isAuthenticated, 
-    initializeUserState, 
-    login, 
+  async function signup(username: string, email: string, referralCode?: string): Promise<ApiResponse> {
+    try {
+      const response = await fetch(`${API_URL}/signup`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({ username, email, referralCode }),
+      })
+
+      const data: ApiResponse = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to sign up')
+      }
+
+      return data
+    } catch (error) {
+      console.error('Signup error:', error)
+      throw error
+    }
+  }
+
+  function logout(): void {
+    localStorage.removeItem('token')
+    token.value = null
+    user.value = null
+  }
+
+  return {
+    user,
+    token,
+    isAuthenticated,
+    login,
     logout,
-    signup,
-    addCoin,
-    addCoins
+    initializeUserState,
+    addCoins,
+    signup
   }
 })

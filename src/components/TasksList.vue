@@ -33,6 +33,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useUserStore } from '@/stores/user'
+import { API_URL } from '@/config/api'
 
 const userStore = useUserStore()
 

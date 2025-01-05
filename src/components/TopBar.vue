@@ -1,17 +1,21 @@
 <script setup lang="ts">
+import { API_URL } from '@/config/api'
 import logo from '@/assets/images/pepewifgold.jpg'
 import { useUserStore } from '@/stores/user'
 import { onMounted, ref, watch } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 
 const userStore = useUserStore()
 const route = useRoute()
+const router = useRouter()
 const loginDialog = ref(false)
 const signupDialog = ref(false)
 const username = ref('')
 const email = ref('')
 const loading = ref(false)
 const error = ref('')
+const snackbar = ref(false)
+const snackbarText = ref('')
 const referralCode = ref(route.query.ref as string || '')
 
 // Watch for route changes to handle referral links
@@ -50,26 +54,59 @@ async function handleLogin() {
 
 async function handleSignup() {
   if (!username.value || !email.value) {
-    error.value = 'Username and email are required'
+    error.value = 'Please fill in all fields'
     return
   }
 
-  // Basic email validation
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-  if (!emailRegex.test(email.value)) {
-    error.value = 'Please enter a valid email address'
-    return
-  }
+  loading.value = true
+  error.value = ''
 
   try {
-    loading.value = true
+    const response = await fetch(`${API_URL}/signup`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      credentials: 'include',
+      body: JSON.stringify({
+        username: username.value,
+        email: email.value,
+        referralCode: route.query.ref
+      })
+    })
+
+    const data = await response.json()
+
+    if (!response.ok) {
+      throw new Error(data.error || 'Signup failed')
+    }
+
+    // Store token first
+    localStorage.setItem('token', data.token)
+    
+    // Update user store
+    await userStore.$patch({
+      user: data.user,
+      token: data.token
+    })
+
+    // Reset form and close dialog
+    username.value = ''
+    email.value = ''
     error.value = ''
-    await userStore.signup(username.value, email.value, referralCode.value)
     signupDialog.value = false
-    loginDialog.value = true
-    resetForm()
-  } catch (err: any) {
-    error.value = err.message || 'Signup failed. Please try again.'
+
+    // Show success message
+    snackbarText.value = 'Welcome to PepeWifGold!'
+    snackbar.value = true
+
+    // Ensure we're authenticated before redirecting
+    if (userStore.isAuthenticated) {
+      await router.push({ path: '/' })
+    }
+  } catch (err) {
+    console.error('Signup error:', err)
+    error.value = err instanceof Error ? err.message : 'An error occurred'
   } finally {
     loading.value = false
   }
@@ -101,8 +138,7 @@ function switchToLogin() {
         {{ userStore.user?.username || 'Guest' }}
       </v-banner-text>
       <v-banner-text class="d-flex align-center">
-        {{ userStore.user ? `Coins: ${userStore.user.coins}` : 'Please login' }}
-        <v-icon v-if="!userStore.user" class="ms-2">mdi-arrow-right</v-icon>
+        {{ userStore.user ? `Coins: ${userStore.user.coins}` : '' }}
       </v-banner-text>
 
       <template v-slot:actions>

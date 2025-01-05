@@ -1,50 +1,53 @@
 <script setup lang="ts">
 import { useUserStore } from '@/stores/user'
 import { useCoinButtonStore } from '@/stores/coinButton'
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted } from 'vue'
 import logo from '@/assets/images/pepewifgold.jpg'
 
 const userStore = useUserStore()
 const coinButtonStore = useCoinButtonStore()
 
-// Array to store multiple coin animations
-const floatingCoins = ref<Array<{ id: number, x: number, y: number }>>([])
-let coinCounter = 0
+interface FloatingCoin {
+  id: number
+  x: number
+  y: number
+}
+
+const floatingCoins = ref<FloatingCoin[]>([])
+let nextCoinId = 0
+
+function addFloatingCoin(x: number, y: number) {
+  const coin = {
+    id: nextCoinId++,
+    x,
+    y
+  }
+  floatingCoins.value.push(coin)
+  setTimeout(() => {
+    floatingCoins.value = floatingCoins.value.filter(c => c.id !== coin.id)
+  }, 1000)
+}
+
+async function handleClick(event: MouseEvent) {
+  if (!coinButtonStore.incrementProgress()) return
+  
+  try {
+    addFloatingCoin(event.clientX, event.clientY)
+    await userStore.addCoins(1, 'click')
+  } catch (error) {
+    console.error('Failed to add coins:', error)
+  }
+}
 
 onMounted(() => {
   coinButtonStore.initializeState()
 })
-
-async function handleCoinClick(event: MouseEvent) {
-  try {
-    if (!userStore.isAuthenticated) return
-
-    const canIncrement = coinButtonStore.incrementProgress()
-    if (!canIncrement) return
-
-    await userStore.addCoins(1, 'click_coin')
-    
-    const newCoin = {
-      id: coinCounter++,
-      x: event.clientX,
-      y: event.clientY
-    }
-    
-    floatingCoins.value.push(newCoin)
-    
-    setTimeout(() => {
-      floatingCoins.value = floatingCoins.value.filter(coin => coin.id !== newCoin.id)
-    }, 1000)
-  } catch (error) {
-    console.error('Failed to add coin:', error)
-  }
-}
 </script>
 
 <template>
   <v-container class="d-flex justify-center align-center fill-height">
     <div class="coin-container">
-      <!-- Updated Alert Banner -->
+      <!-- Alert Banner -->
       <v-banner
         v-if="coinButtonStore.showAlert && coinButtonStore.isRefilling"
         color="error"
@@ -74,7 +77,7 @@ async function handleCoinClick(event: MouseEvent) {
         flat
         class="coin-button mt-16"
         :disabled="!userStore.isAuthenticated || coinButtonStore.progress >= coinButtonStore.maxProgress || coinButtonStore.isRefilling"
-        @click="handleCoinClick"
+        @click="handleClick"
       >
         <v-avatar size="250">
           <v-img :src="logo" cover></v-img>
@@ -147,11 +150,11 @@ async function handleCoinClick(event: MouseEvent) {
 }
 
 .coin-float-enter-active {
-  animation: float-up 1s ease-out forwards;
+  animation: float-up 0.5s ease-out forwards;
 }
 
 .coin-float-leave-active {
-  animation: fade-out 0.3s ease-out forwards;
+  animation: fade-out 0.2s ease-out forwards;
 }
 
 @keyframes float-up {
@@ -160,7 +163,7 @@ async function handleCoinClick(event: MouseEvent) {
     opacity: 1;
   }
   100% {
-    transform: translate(-50%, -200%) scale(1);
+    transform: translate(-50%, -150%) scale(1);
     opacity: 0;
   }
 }
