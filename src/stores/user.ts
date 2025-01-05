@@ -14,31 +14,7 @@ export const useUserStore = defineStore('user', () => {
   const token = ref<string | null>(localStorage.getItem('token'))
   const loading = ref(false)
 
-  // Computed
   const isAuthenticated = computed(() => !!token.value && !!user.value)
-
-  // Actions
-  async function initializeAuth() {
-    if (token.value) {
-      try {
-        const response = await fetch(`${API_URL}/me`, {
-          headers: {
-            'Authorization': `Bearer ${token.value}`
-          }
-        })
-        
-        if (response.ok) {
-          const data = await response.json()
-          user.value = data.user
-        } else {
-          await logout()
-        }
-      } catch (error) {
-        console.error('Auth initialization failed:', error)
-        await logout()
-      }
-    }
-  }
 
   async function login(username: string) {
     loading.value = true
@@ -101,7 +77,6 @@ export const useUserStore = defineStore('user', () => {
     isAuthenticated,
     login,
     logout,
-    addCoins,
-    initializeAuth
+    addCoins
   }
 })
