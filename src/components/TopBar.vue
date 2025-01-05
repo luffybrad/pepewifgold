@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useUserStore } from '@/stores/user'
 import { useRouter, useRoute } from 'vue-router'
 import { API_URL } from '@/config/api'
@@ -8,7 +8,6 @@ import logo from '@/assets/images/pepewifgold.jpg'
 const userStore = useUserStore()
 const router = useRouter()
 const route = useRoute()
-const isTelegramWebApp = ref(window.Telegram?.WebApp != null)
 
 // UI state
 const loginDialog = ref(false)
@@ -20,6 +19,32 @@ const error = ref('')
 const snackbar = ref(false)
 const snackbarText = ref('')
 const referralCode = ref(route.query.ref as string || '')
+const isTelegramWebApp = ref(window.Telegram?.WebApp != null)
+
+// Check if token exists on mount
+onMounted(async () => {
+  if (userStore.token) {
+    try {
+      const response = await fetch(`${API_URL}/user`, {
+        headers: {
+          'Authorization': `Bearer ${userStore.token}`,
+          'Content-Type': 'application/json',
+          'ngrok-skip-browser-warning': '1'
+        }
+      })
+      
+      if (response.ok) {
+        const data = await response.json()
+        userStore.user = data
+      } else {
+        userStore.logout()
+      }
+    } catch (error) {
+      console.error('Failed to fetch user:', error)
+      userStore.logout()
+    }
+  }
+})
 
 // Handle signup (both direct and referral)
 async function handleSignup() {
