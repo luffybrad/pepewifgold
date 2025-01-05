@@ -4,20 +4,18 @@ import TopBar from './components/TopBar.vue';
 </script>
 
 <template>
-
-<v-layout>
-  <v-container fluid
-  >
-  <TopBar/>
-  <RouterView/>
-  <BottomBar/>
-</v-container>
-</v-layout>
-
-
-
+  <v-layout class="fill-height">
+    <v-app>
+      <TopBar />
+      <v-main class="d-flex align-center">
+        <v-container fluid>
+          <RouterView />
+        </v-container>
+      </v-main>
+      <BottomBar />
+    </v-app>
+  </v-layout>
 </template>
-
 
 <style>
 </style>
