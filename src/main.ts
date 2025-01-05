@@ -5,10 +5,12 @@ import { createPinia } from 'pinia'
 
 import App from './App.vue'
 import router from './router'
+import { useUserStore } from '@/stores/user'
 import '@mdi/font/css/materialdesignicons.css' // Ensure you are using css-loader
 
 
 const app = createApp(App)
+const pinia = createPinia()
 
 // Vuetify
 import 'vuetify/styles'
@@ -21,8 +23,12 @@ const vuetify = createVuetify({
   directives,
 })
 
-app.use(createPinia())
+app.use(pinia)
 app.use(router)
 app.use(vuetify)
+
+// Initialize authentication
+const userStore = useUserStore()
+await userStore.initializeAuth()
 
 app.mount('#app')

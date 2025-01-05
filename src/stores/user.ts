@@ -7,145 +7,59 @@ interface User {
   username: string
   email: string
   coins: number
-  isLoggedIn: boolean
-}
-
-interface ApiResponse {
-  token?: string
-  error?: string
-  coins?: number
-  userId?: number
-  username?: string
-  email?: string
 }
 
 export const useUserStore = defineStore('user', () => {
   const user = ref<User | null>(null)
   const token = ref<string | null>(localStorage.getItem('token'))
-  const isAuthenticated = computed(() => !!token.value)
-  const lastClickTime = ref<number>(0)
+  const loading = ref(false)
 
-  async function login(username: string): Promise<ApiResponse> {
-    try {
-      const response = await fetch(`${API_URL}/signin`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify({ username }),
-      })
+  // Computed
+  const isAuthenticated = computed(() => !!token.value && !!user.value)
 
-      const data: ApiResponse = await response.json()
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to login')
-      }
-
-      if (data.token) {
-        token.value = data.token
-        localStorage.setItem('token', data.token)
-        await initializeUserState()
-      }
-
-      return data
-    } catch (error) {
-      console.error('Login error:', error)
-      throw error
-    }
-  }
-
-  async function initializeUserState(): Promise<void> {
-    try {
-      if (!token.value) return
-
-      const response = await fetch(`${API_URL}/user`, {
-        headers: {
-          'Authorization': `Bearer ${token.value}`,
-          'Content-Type': 'application/json'
-        },
-        credentials: 'include'
-      })
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch user data')
-      }
-
-      const userData: ApiResponse = await response.json()
-
-      if (userData.userId && userData.username && userData.email !== undefined) {
-        user.value = {
-          id: userData.userId,
-          username: userData.username,
-          email: userData.email,
-          coins: userData.coins || 0,
-          isLoggedIn: true
-        }
-      }
-    } catch (error) {
-      console.error('Error initializing user state:', error)
-      logout()
-    }
-  }
-
-  async function addCoins(amount: number, taskType: string) {
-    if (!token.value || !user.value) {
-      throw new Error('Not authenticated')
-    }
-
-    try {
-      const response = await fetch(`${API_URL}/add-coins`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token.value}`
-        },
-        credentials: 'include',
-        body: JSON.stringify({
-          amount: 1,
-          taskType: 'click_coin'
+  // Actions
+  async function initializeAuth() {
+    if (token.value) {
+      try {
+        const response = await fetch(`${API_URL}/me`, {
+          headers: {
+            'Authorization': `Bearer ${token.value}`
+          }
         })
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json()
-        console.error('Server error:', errorData)
-        throw new Error(errorData.error || 'Failed to add coins')
+        
+        if (response.ok) {
+          const data = await response.json()
+          user.value = data.user
+        } else {
+          await logout()
+        }
+      } catch (error) {
+        console.error('Auth initialization failed:', error)
+        await logout()
       }
+    }
+  }
+
+  async function login(username: string) {
+    loading.value = true
+    try {
+      const response = await fetch(`${API_URL}/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username })
+      })
 
       const data = await response.json()
-      
-      if (user.value && typeof data.coins === 'number') {
-        user.value.coins = data.coins
-      }
-      return data
+      if (!response.ok) throw new Error(data.error)
+
+      token.value = data.token
+      user.value = data.user
+      localStorage.setItem('token', data.token)
     } catch (error) {
-      console.error('Add coins error:', error)
+      console.error('Login failed:', error)
       throw error
-    }
-  }
-
-  async function signup(username: string, email: string, referralCode?: string): Promise<ApiResponse> {
-    try {
-      const response = await fetch(`${API_URL}/signup`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify({ username, email, referralCode }),
-      })
-
-      const data: ApiResponse = await response.json()
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to sign up')
-      }
-
-      return data
-    } catch (error) {
-      console.error('Signup error:', error)
-      throw error
+    } finally {
+      loading.value = false
     }
   }
 
@@ -155,14 +69,39 @@ export const useUserStore = defineStore('user', () => {
     localStorage.removeItem('token')
   }
 
+  async function addCoins(amount: number, taskType: string) {
+    if (!token.value) throw new Error('Not authenticated')
+
+    try {
+      const response = await fetch(`${API_URL}/add-coins`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token.value}`
+        },
+        body: JSON.stringify({ amount, taskType })
+      })
+
+      const data = await response.json()
+      if (!response.ok) throw new Error(data.error)
+
+      if (user.value) {
+        user.value.coins = data.newBalance
+      }
+    } catch (error) {
+      console.error('Failed to add coins:', error)
+      throw error
+    }
+  }
+
   return {
     user,
     token,
+    loading,
     isAuthenticated,
     login,
     logout,
-    initializeUserState,
     addCoins,
-    signup
+    initializeAuth
   }
 })
