@@ -11,7 +11,7 @@
           ></v-progress-circular>
         </div>
 
-        <!-- Error State -->
+        <!-- Error State with Retry -->
         <v-alert
           v-else-if="error"
           type="error"
@@ -19,6 +19,15 @@
           closable
         >
           {{ error }}
+          <template v-slot:append>
+            <v-btn
+              color="error"
+              variant="text"
+              @click="fetchData"
+            >
+              Retry
+            </v-btn>
+          </template>
         </v-alert>
 
         <template v-else>
@@ -45,12 +54,10 @@
                   v-for="(referral, index) in referrals"
                   :key="index"
                   :title="`Referred ${referral.referred_user}`"
-                  :subtitle="new Date(referral.created_at).toLocaleDateString()"
+                  :subtitle="formatDate(referral.created_at)"
                 >
                   <template v-slot:append>
-                    <span class="text-success">
-                      +500
-                    </span>
+                    <span class="text-success">+500</span>
                   </template>
                 </v-list-item>
               </v-list>
@@ -69,8 +76,8 @@
                 <v-list-item
                   v-for="transaction in transactions"
                   :key="transaction.id"
-                  :title="transaction.task_type"
-                  :subtitle="new Date(transaction.completed_at).toLocaleDateString()"
+                  :title="formatTaskType(transaction.task_type)"
+                  :subtitle="formatDate(transaction.completed_at)"
                 >
                   <template v-slot:append>
                     <span class="text-success">
@@ -122,45 +129,76 @@ const referrals = ref<Referral[]>([])
 const loading = ref(true)
 const error = ref<string | null>(null)
 
-async function fetchUserStats() {
-  if (!userStore.token) {
-    throw new Error('Not authenticated')
+// Format dates consistently
+function formatDate(dateString: string): string {
+  try {
+    return new Date(dateString).toLocaleDateString(undefined, {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    })
+  } catch (e) {
+    return dateString
   }
-
-  const response = await fetch(`${API_URL}/user/stats`, {
-    method: 'GET',
-    headers: {
-      'Authorization': `Bearer ${userStore.token}`,
-      'Content-Type': 'application/json'
-    },
-    credentials: 'include'
-  })
-
-  if (!response.ok) {
-    const errorData = await response.json()
-    throw new Error(errorData.error || 'Failed to fetch user stats')
-  }
-
-  return await response.json()
 }
 
-onMounted(async () => {
-  if (!userStore.isAuthenticated) {
+// Format task types for display
+function formatTaskType(type: string): string {
+  return type
+    .split('_')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ')
+}
+
+// Fetch data with retry mechanism
+async function fetchData(retryCount = 3) {
+  if (!userStore.token) {
     router.push('/')
     return
   }
 
+  loading.value = true
+  error.value = null
+
   try {
-    loading.value = true
-    const stats = await fetchUserStats()
-    transactions.value = stats.tasks || []
-    referrals.value = stats.referrals || []
+    const response = await fetch(`${API_URL}/user/stats`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${userStore.token}`,
+        'Content-Type': 'application/json',
+        'ngrok-skip-browser-warning': '1'
+      }
+    })
+
+    if (!response.ok) {
+      const errorData = await response.json()
+      throw new Error(errorData.error || 'Failed to fetch user stats')
+    }
+
+    const data = await response.json()
+    transactions.value = data.tasks || []
+    referrals.value = data.referrals || []
   } catch (err) {
     console.error('Error fetching stats:', err)
-    error.value = err instanceof Error ? err.message : 'An error occurred'
+    error.value = 'Failed to load data. Please try again.'
+    
+    // Retry mechanism
+    if (retryCount > 0) {
+      setTimeout(() => {
+        fetchData(retryCount - 1)
+      }, 1000)
+    }
   } finally {
     loading.value = false
   }
+}
+
+onMounted(() => {
+  if (!userStore.isAuthenticated) {
+    router.push('/')
+    return
+  }
+  fetchData()
 })
 </script>
 
@@ -172,5 +210,24 @@ onMounted(async () => {
 .v-card-title {
   font-size: 1.25rem;
   font-weight: 500;
+}
+
+/* Mobile optimizations */
+@media (max-width: 600px) {
+  .v-card-title {
+    font-size: 1.1rem;
+  }
+  
+  .text-h4 {
+    font-size: 1.5rem !important;
+  }
+  
+  .v-list-item__title {
+    font-size: 0.9rem;
+  }
+  
+  .v-list-item__subtitle {
+    font-size: 0.8rem;
+  }
 }
 </style>
