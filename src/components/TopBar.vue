@@ -1,13 +1,16 @@
 <script setup lang="ts">
+import { ref, computed } from 'vue'
+import { useUserStore } from '@/stores/user'
+import { useRouter, useRoute } from 'vue-router'
 import { API_URL } from '@/config/api'
 import logo from '@/assets/images/pepewifgold.jpg'
-import { useUserStore } from '@/stores/user'
-import { onMounted, ref, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
 
 const userStore = useUserStore()
-const route = useRoute()
 const router = useRouter()
+const route = useRoute()
+const isTelegramWebApp = ref(window.Telegram?.WebApp != null)
+
+// UI state
 const loginDialog = ref(false)
 const signupDialog = ref(false)
 const username = ref('')
@@ -17,47 +20,8 @@ const error = ref('')
 const snackbar = ref(false)
 const snackbarText = ref('')
 const referralCode = ref(route.query.ref as string || '')
-const isTelegramWebApp = ref(window.Telegram?.WebApp != null)
 
-// Watch for route changes to handle referral links
-watch(
-  () => route.query.ref,
-  (newRef) => {
-    if (newRef) {
-      referralCode.value = newRef as string
-      signupDialog.value = true
-    }
-  }
-)
-
-onMounted(async () => {
-  await userStore.initializeUserState()
-})
-
-async function handleLogin() {
-  if (!username.value) {
-    error.value = 'Username is required'
-    return
-  }
-
-  try {
-    loading.value = true
-    error.value = ''
-    await userStore.login(username.value)
-    loginDialog.value = false
-    resetForm()
-    
-    // Don't redirect if in Telegram WebApp
-    if (!isTelegramWebApp.value && route.path !== '/') {
-      await router.push('/')
-    }
-  } catch (err: any) {
-    error.value = err.message || 'Login failed. Please try again.'
-  } finally {
-    loading.value = false
-  }
-}
-
+// Handle signup (both direct and referral)
 async function handleSignup() {
   if (!username.value || !email.value) {
     error.value = 'Please fill in all fields'
@@ -70,9 +34,7 @@ async function handleSignup() {
   try {
     const response = await fetch(`${API_URL}/signup`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
+      headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
       body: JSON.stringify({
         username: username.value,
@@ -82,33 +44,24 @@ async function handleSignup() {
     })
 
     const data = await response.json()
+    if (!response.ok) throw new Error(data.error || 'Signup failed')
 
-    if (!response.ok) {
-      throw new Error(data.error || 'Signup failed')
-    }
-
-    // Store token first
+    // Set authentication
     localStorage.setItem('token', data.token)
-    
-    // Update user store
     await userStore.$patch({
       user: data.user,
       token: data.token
     })
 
-    // Reset form and close dialog
-    username.value = ''
-    email.value = ''
-    error.value = ''
+    // Reset UI
+    resetForm()
     signupDialog.value = false
-
-    // Show success message
     snackbarText.value = 'Welcome to PepeWifGold!'
     snackbar.value = true
 
-    // Ensure we're authenticated before redirecting
-    if (userStore.isAuthenticated) {
-      await router.push({ path: '/' })
+    // Handle navigation
+    if (!isTelegramWebApp.value) {
+      await router.push('/')
     }
   } catch (err) {
     console.error('Signup error:', err)
@@ -118,6 +71,47 @@ async function handleSignup() {
   }
 }
 
+// Handle login
+async function handleLogin() {
+  if (!username.value) {
+    error.value = 'Username is required'
+    return
+  }
+
+  loading.value = true
+  error.value = ''
+
+  try {
+    await userStore.login(username.value)
+    resetForm()
+    loginDialog.value = false
+    
+    // Handle navigation
+    if (!isTelegramWebApp.value) {
+      await router.push('/')
+    }
+  } catch (err: any) {
+    error.value = err.message || 'Login failed'
+  } finally {
+    loading.value = false
+  }
+}
+
+// Handle logout
+async function handleLogout() {
+  try {
+    await userStore.logout()
+    if (!isTelegramWebApp.value) {
+      await router.push('/')
+    }
+  } catch (err) {
+    console.error('Logout error:', err)
+    snackbarText.value = 'Logout failed'
+    snackbar.value = true
+  }
+}
+
+// UI helpers
 function resetForm() {
   username.value = ''
   email.value = ''
@@ -134,21 +128,6 @@ function switchToLogin() {
   signupDialog.value = false
   loginDialog.value = true
   resetForm()
-}
-
-// Add proper logout handling
-async function handleLogout() {
-  try {
-    await userStore.logout()
-    // Only redirect if not in Telegram WebApp and not on home page
-    if (!isTelegramWebApp.value && route.path !== '/') {
-      await router.push('/')
-    }
-  } catch (err) {
-    console.error('Logout error:', err)
-    snackbarText.value = 'Logout failed'
-    snackbar.value = true
-  }
 }
 </script>
 
