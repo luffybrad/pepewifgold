@@ -12,16 +12,24 @@ interface User {
 export const useUserStore = defineStore('user', () => {
   const user = ref<User | null>(null)
   const token = ref<string | null>(localStorage.getItem('token'))
-  const loading = ref(false)
 
-  const isAuthenticated = computed(() => !!token.value && !!user.value)
+  const isAuthenticated = computed(() => !!token.value)
+
+  function updateCoins(newAmount: number) {
+    if (user.value) {
+      user.value.coins = newAmount
+    }
+  }
 
   async function login(username: string) {
-    loading.value = true
     try {
       const response = await fetch(`${API_URL}/login`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'ngrok-skip-browser-warning': '1'
+        },
+        credentials: 'include',
         body: JSON.stringify({ username })
       })
 
@@ -34,49 +42,21 @@ export const useUserStore = defineStore('user', () => {
     } catch (error) {
       console.error('Login failed:', error)
       throw error
-    } finally {
-      loading.value = false
     }
   }
 
-  async function logout() {
+  function logout() {
     user.value = null
     token.value = null
     localStorage.removeItem('token')
   }
 
-  async function addCoins(amount: number, taskType: string) {
-    if (!token.value) throw new Error('Not authenticated')
-
-    try {
-      const response = await fetch(`${API_URL}/add-coins`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token.value}`
-        },
-        body: JSON.stringify({ amount, taskType })
-      })
-
-      const data = await response.json()
-      if (!response.ok) throw new Error(data.error)
-
-      if (user.value) {
-        user.value.coins = data.newBalance
-      }
-    } catch (error) {
-      console.error('Failed to add coins:', error)
-      throw error
-    }
-  }
-
   return {
     user,
     token,
-    loading,
     isAuthenticated,
     login,
     logout,
-    addCoins
+    updateCoins
   }
 })

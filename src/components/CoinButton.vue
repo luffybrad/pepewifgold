@@ -2,6 +2,7 @@
 import { useUserStore } from '@/stores/user'
 import { useCoinButtonStore } from '@/stores/coinButton'
 import { ref, onMounted } from 'vue'
+import { API_URL } from '@/config/api'
 import logo from '@/assets/images/pepewifgold.jpg'
 
 const userStore = useUserStore()
@@ -33,7 +34,27 @@ async function handleClick(event: MouseEvent) {
   
   try {
     addFloatingCoin(event.clientX, event.clientY)
-    await userStore.addCoins(1, 'click')
+    
+    const response = await fetch(`${API_URL}/add-coins`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${userStore.token}`,
+        'ngrok-skip-browser-warning': '1'
+      },
+      credentials: 'include',
+      body: JSON.stringify({
+        amount: 1,
+        taskType: 'click_coin'
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to add coins');
+    }
+
+    const data = await response.json();
+    userStore.updateCoins(data.coins);
   } catch (error) {
     console.error('Failed to add coins:', error)
   }

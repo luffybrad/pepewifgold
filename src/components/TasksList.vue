@@ -77,8 +77,27 @@ const tasks = ref([
 
 async function handleSubscribe(link: string, type: string) {
   try {
-    await userStore.addCoins(2500, type)
-    window.open(link, '_blank')
+    const response = await fetch(`${API_URL}/add-coins`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${userStore.token}`,
+        'ngrok-skip-browser-warning': '1'
+      },
+      credentials: 'include',
+      body: JSON.stringify({
+        amount: 2500,
+        taskType: type
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to add coins');
+    }
+
+    const data = await response.json();
+    userStore.updateCoins(data.coins);
+    window.open(link, '_blank');
   } catch (error) {
     console.error('Failed to add coins:', error)
   }
