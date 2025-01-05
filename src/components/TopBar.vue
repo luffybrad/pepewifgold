@@ -129,6 +129,21 @@ function switchToLogin() {
   loginDialog.value = true
   resetForm()
 }
+
+// Add proper logout handling
+async function handleLogout() {
+  try {
+    await userStore.logout()
+    // Only redirect if we're not already on the home page
+    if (route.path !== '/') {
+      await router.push('/')
+    }
+  } catch (err) {
+    console.error('Logout error:', err)
+    snackbarText.value = 'Logout failed'
+    snackbar.value = true
+  }
+}
 </script>
 
 <template>
@@ -269,7 +284,7 @@ function switchToLogin() {
           color="red"
           icon="mdi-logout"
           rounded
-          @click="userStore.logout()"
+          @click="handleLogout"
         />
       </template>
     </v-banner>
